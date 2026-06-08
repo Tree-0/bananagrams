@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bananagrams</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <main class="app-shell">
+        <section class="play-area" aria-label="Bananagrams board">
+            <div class="top-bar">
+                <form id="custom-game-form" class="new-game-form">
+                    <label for="custom-letters">Custom rack</label>
+                    <input
+                        id="custom-letters"
+                        name="letters"
+                        type="text"
+                        value="BEANTRIE"
+                        autocomplete="off"
+                        spellcheck="false"
+                    >
+                    <button type="submit">Start Custom</button>
+                    <button id="random-game-button" type="button">Random 21</button>
+                </form>
+
+                <div class="status-pill" id="board-status">Loading</div>
+            </div>
+
+            <div class="board-wrap">
+                <div id="grid" class="grid" aria-label="Tile grid"></div>
+            </div>
+        </section>
+
+        <aside class="side-panel">
+            <section class="rack-panel">
+                <div class="panel-heading">
+                    <h2>Rack</h2>
+                    <span id="rack-count">0</span>
+                </div>
+                <div id="rack" class="rack" aria-label="Available tiles"></div>
+            </section>
+
+            <section class="words-panel">
+                <div class="panel-heading">
+                    <h2>Words</h2>
+                </div>
+                <ul id="word-list" class="word-list"></ul>
+            </section>
+
+            <section class="messages-panel">
+                <div class="panel-heading">
+                    <h2>Status</h2>
+                </div>
+                <ul id="messages" class="message-list"></ul>
+            </section>
+        </aside>
+    </main>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

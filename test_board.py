@@ -122,6 +122,95 @@ class BoardTests(unittest.TestCase):
 
         self.assertFalse(board.is_valid_board())
 
+    def test_place_or_overwrite_tile_replaces_existing_tile_atomically(self):
+        board = self.make_board("BE")
+        board.place_tile("B", 0, 0)
+
+        tile = board.place_or_overwrite_tile("E", 0, 0)
+
+        self.assertEqual(tile, Tile("E"))
+        self.assertEqual(board.placed_tiles[Point(0, 0)], Tile("E"))
+        self.assertEqual(board.unplaced_letters["B"], 1)
+        self.assertEqual(board.unplaced_letters["E"], 0)
+
+    def test_place_or_overwrite_tile_failure_preserves_existing_tile(self):
+        board = self.make_board("BE")
+        board.place_tile("B", 0, 0)
+
+        with self.assertRaises(ValueError):
+            board.place_or_overwrite_tile("X", 0, 0)
+
+        self.assertEqual(board.placed_tiles[Point(0, 0)], Tile("B"))
+        self.assertEqual(board.unplaced_letters["B"], 0)
+        self.assertEqual(board.unplaced_letters["E"], 1)
+        self.assertEqual(board.unplaced_letters["X"], 0)
+
+    def test_place_or_overwrite_tile_with_same_letter_is_noop(self):
+        board = self.make_board("BB")
+        board.place_tile("B", 0, 0)
+
+        board.place_or_overwrite_tile("B", 0, 0)
+
+        self.assertEqual(board.placed_tiles[Point(0, 0)], Tile("B"))
+        self.assertEqual(board.unplaced_letters["B"], 1)
+
+    def test_move_tile_moves_placed_tile_without_changing_rack(self):
+        board = self.make_board("A")
+        board.place_tile("A", 0, 0)
+
+        moved = board.move_tile(Point(0, 0), Point(3, -2))
+
+        self.assertEqual(moved, Tile("A"))
+        self.assertNotIn(Point(0, 0), board.placed_tiles)
+        self.assertEqual(board.placed_tiles[Point(3, -2)], Tile("A"))
+        self.assertEqual(board.unplaced_letters["A"], 0)
+
+    def test_move_tile_rejects_occupied_target(self):
+        board = self.make_board("AB")
+        board.place_tile("A", 0, 0)
+        board.place_tile("B", 1, 0)
+
+        with self.assertRaises(ValueError):
+            board.move_tile(Point(0, 0), Point(1, 0))
+
+        self.assertEqual(board.placed_tiles[Point(0, 0)], Tile("A"))
+        self.assertEqual(board.placed_tiles[Point(1, 0)], Tile("B"))
+
+    def test_get_formed_word_details_preserves_duplicate_word_paths(self):
+        board = self.make_board("BEBE", valid_words={"BE", "BB", "EE"})
+        board.place_tile("B", 0, 0)
+        board.place_tile("E", 1, 0)
+        board.place_tile("B", 0, 1)
+        board.place_tile("E", 1, 1)
+
+        details = board.get_formed_word_details()
+        horizontal_be_words = [
+            detail
+            for detail in details
+            if detail["word"] == "BE" and detail["direction"] == "horizontal"
+        ]
+
+        self.assertEqual(len(horizontal_be_words), 2)
+        self.assertEqual(len(details), 4)
+
+    def test_to_state_serializes_board_for_ui(self):
+        board = self.make_board("BE", valid_words={"BE"})
+        board.place_tile("B", 0, 0)
+        board.place_tile("E", 1, 0)
+
+        state = board.to_state()
+
+        self.assertEqual(state["rack"], {})
+        self.assertEqual(
+            state["placed_tiles"],
+            [
+                {"x": 0, "y": 0, "char": "B", "is_wildcard": False},
+                {"x": 1, "y": 0, "char": "E", "is_wildcard": False},
+            ],
+        )
+        self.assertTrue(state["is_valid"])
+        self.assertEqual(state["formed_words"][0]["word"], "BE")
+
 
 if __name__ == "__main__":
     unittest.main()
