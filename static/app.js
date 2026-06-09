@@ -9,6 +9,8 @@ const elements = {
     grid: document.querySelector("#grid"),
     rack: document.querySelector("#rack"),
     rackCount: document.querySelector("#rack-count"),
+    bagCount: document.querySelector("#bag-count"),
+    peelButton: document.querySelector("#peel-button"),
     wordList: document.querySelector("#word-list"),
     messages: document.querySelector("#messages"),
 };
@@ -97,9 +99,12 @@ function render(state) {
 }
 
 function renderStatus() {
-    elements.status.classList.toggle("valid", ui.state.is_valid);
+    elements.status.classList.toggle("valid", ui.state.is_valid && !ui.state.is_game_over);
     elements.status.classList.toggle("invalid", !ui.state.is_valid);
-    elements.status.textContent = ui.state.is_valid ? "Valid" : "Invalid";
+    elements.status.classList.toggle("complete", ui.state.is_game_over);
+    elements.status.textContent = ui.state.is_game_over
+        ? "Complete"
+        : ui.state.is_valid ? "Valid" : "Invalid";
 }
 
 function renderRack() {
@@ -108,8 +113,13 @@ function renderRack() {
     const entries = Object.entries(ui.state.rack).sort(([a], [b]) => a.localeCompare(b));
     const total = entries.reduce((sum, [, count]) => sum + count, 0);
     elements.rackCount.textContent = total;
+    elements.bagCount.textContent = ui.state.bag_count;
+    elements.peelButton.disabled = !ui.state.can_peel;
 
     for (const [char, count] of entries) {
+        const item = document.createElement("div");
+        item.className = "rack-item";
+
         const tile = document.createElement("button");
         tile.type = "button";
         tile.className = "tile rack-tile";
@@ -120,7 +130,19 @@ function renderRack() {
         tile.addEventListener("dragstart", () => {
             ui.dragged = { type: "rack", char };
         });
-        elements.rack.append(tile);
+
+        const dumpButton = document.createElement("button");
+        dumpButton.type = "button";
+        dumpButton.className = "dump-button";
+        dumpButton.textContent = "Dump";
+        dumpButton.disabled = !ui.state.can_dump;
+        dumpButton.addEventListener("click", (event) => {
+            event.stopPropagation();
+            dumpTile(char);
+        });
+
+        item.append(tile, dumpButton);
+        elements.rack.append(item);
     }
 }
 
@@ -232,7 +254,7 @@ function renderBoardTile(tile, x, y, coverage) {
 async function dropOnCell(x, y) {
     ui.selected = { x, y };
 
-    if (!ui.dragged) {
+    if (!ui.dragged || (ui.state && ui.state.is_game_over)) {
         return;
     }
 
@@ -256,6 +278,10 @@ async function dropOnCell(x, y) {
 }
 
 async function placeSelected(char, overwrite) {
+    if (ui.state && ui.state.is_game_over) {
+        return;
+    }
+
     await requestApi("/api/place", {
         x: ui.selected.x,
         y: ui.selected.y,
@@ -265,7 +291,19 @@ async function placeSelected(char, overwrite) {
 }
 
 async function removeSelected() {
+    if (ui.state && ui.state.is_game_over) {
+        return;
+    }
+
     await requestApi("/api/remove", ui.selected);
+}
+
+async function peel() {
+    await requestApi("/api/peel", {});
+}
+
+async function dumpTile(char) {
+    await requestApi("/api/dump", { char });
 }
 
 elements.customForm.addEventListener("submit", async (event) => {
@@ -281,6 +319,8 @@ elements.randomButton.addEventListener("click", async () => {
     ui.selected = { x: 0, y: 0 };
     await requestApi("/api/new", { mode: "random" });
 });
+
+elements.peelButton.addEventListener("click", peel);
 
 elements.rack.addEventListener("dragover", (event) => event.preventDefault());
 elements.rack.addEventListener("drop", async (event) => {
@@ -308,9 +348,17 @@ document.addEventListener("keydown", async (event) => {
         return;
     }
 
-    if (event.key === "Backspace" || event.key === "Delete") {
+    if (event.key === "Backspace" || event.key === "Delete" || event.key === "Escape") {
         event.preventDefault();
         await removeSelected();
+        return;
+    }
+
+    if (event.code === "Space") {
+        event.preventDefault();
+        if (ui.state && ui.state.can_peel) {
+            await peel();
+        }
         return;
     }
 
