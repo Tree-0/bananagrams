@@ -406,7 +406,7 @@ document.addEventListener("keydown", async (event) => {
     }
 
     // Press space to peel a tile, when possible
-    if (event.code === "Space" && !event.shiftKey) {
+    if (event.code === "Space") {
         event.preventDefault();
         // Press shift + space to dump the tile on the selected cell
         if (event.shiftKey) {
