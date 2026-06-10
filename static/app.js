@@ -20,6 +20,8 @@ const ui = {
     selected: { x: 0, y: 0 },
     state: null,
     dragged: null,
+    expandedWord: null,
+    definitionCache: new Map(),
 };
 
 async function requestApi(path, payload = null) {
@@ -35,6 +37,11 @@ async function requestApi(path, payload = null) {
     const data = await response.json();
     render(data);
     return data;
+}
+
+async function requestJson(path) {
+    const response = await fetch(path);
+    return response.json();
 }
 
 function pointKey(x, y) {
@@ -151,17 +158,143 @@ function renderWords() {
     elements.wordList.innerHTML = "";
 
     if (ui.state.formed_words.length === 0) {
+        ui.expandedWord = null;
         const item = document.createElement("li");
         item.textContent = "None";
         elements.wordList.append(item);
         return;
     }
 
+    const visibleValidWords = new Set(
+        ui.state.formed_words
+            .filter((detail) => detail.is_valid)
+            .map((detail) => detail.word)
+    );
+    if (ui.expandedWord && !visibleValidWords.has(ui.expandedWord)) {
+        ui.expandedWord = null;
+    }
+
     for (const detail of ui.state.formed_words) {
         const item = document.createElement("li");
         item.className = detail.is_valid ? "valid" : "invalid";
-        item.textContent = `${detail.word} ${detail.direction}`;
+        const label = `${detail.word} ${detail.direction}`;
+
+        if (!detail.is_valid) {
+            item.textContent = label;
+            elements.wordList.append(item);
+            continue;
+        }
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "word-button";
+        button.textContent = label;
+        button.setAttribute("aria-expanded", String(ui.expandedWord === detail.word));
+        button.addEventListener("click", () => toggleWordDefinitions(detail.word));
+        item.append(button);
+
+        if (ui.expandedWord === detail.word) {
+            item.append(renderWordDefinitions(detail.word));
+        }
+
         elements.wordList.append(item);
+    }
+}
+
+function renderWordDefinitions(word) {
+    const container = document.createElement("div");
+    container.className = "word-definitions";
+
+    const cached = ui.definitionCache.get(word);
+    if (!cached || cached.status === "loading") {
+        container.classList.add("muted");
+        container.textContent = "Loading definitions...";
+        return container;
+    }
+
+    if (cached.status === "error") {
+        container.classList.add("error");
+        container.textContent = cached.message;
+        return container;
+    }
+
+    if (cached.meanings.length === 0) {
+        container.classList.add("muted");
+        container.textContent = "No definitions found.";
+        return container;
+    }
+
+    for (const meaning of cached.meanings) {
+        const group = document.createElement("div");
+        group.className = "definition-meaning";
+
+        const partOfSpeech = document.createElement("div");
+        partOfSpeech.className = "part-of-speech";
+        partOfSpeech.textContent = meaning.part_of_speech;
+        group.append(partOfSpeech);
+
+        for (const definition of meaning.definitions) {
+            const row = document.createElement("div");
+            row.className = "definition-row";
+
+            const definitionText = document.createElement("p");
+            definitionText.textContent = definition.definition;
+            row.append(definitionText);
+
+            if (definition.example) {
+                const example = document.createElement("p");
+                example.className = "definition-example";
+                example.textContent = definition.example;
+                row.append(example);
+            }
+
+            group.append(row);
+        }
+
+        container.append(group);
+    }
+
+    return container;
+}
+
+async function toggleWordDefinitions(word) {
+    if (ui.expandedWord === word) {
+        ui.expandedWord = null;
+        renderWords();
+        return;
+    }
+
+    ui.expandedWord = word;
+    if (ui.definitionCache.has(word)) {
+        renderWords();
+        return;
+    }
+
+    ui.definitionCache.set(word, { status: "loading" });
+    renderWords();
+
+    try {
+        const data = await requestJson(`/api/definitions/${encodeURIComponent(word)}`);
+        if (data.success) {
+            ui.definitionCache.set(word, {
+                status: "loaded",
+                meanings: data.meanings || [],
+            });
+        } else {
+            ui.definitionCache.set(word, {
+                status: "error",
+                message: data.message || "Definition lookup failed.",
+            });
+        }
+    } catch (error) {
+        ui.definitionCache.set(word, {
+            status: "error",
+            message: "Definition lookup failed.",
+        });
+    }
+
+    if (ui.expandedWord === word) {
+        renderWords();
     }
 }
 

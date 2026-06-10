@@ -8,18 +8,22 @@ from flask import Flask, jsonify, render_template, request
 
 from board import Board, Point
 from game import Game
+from word_definitions import DefinitionLookupError, lookup_definitions
 
 
 BoardFactory = Callable[[Any], Board]
+DefinitionLookup = Callable[[str], dict[str, Any]]
 
 
 def create_app(
     board_factory: BoardFactory = Board,
     rng: random.Random | None = None,
     initial_game: Game | None = None,
+    definition_lookup: DefinitionLookup | None = None,
 ) -> Flask:
     app = Flask(__name__)
     rng = rng or random.Random()
+    definition_lookup_func = definition_lookup or lookup_definitions
     game = {"session": initial_game or Game.new_random(board_factory, rng)}
 
     def current_game() -> Game:
@@ -67,6 +71,24 @@ def create_app(
     @app.get("/api/state")
     def api_state():
         return state_response()
+
+    @app.get("/api/definitions/<word>")
+    def api_definitions(word: str):
+        try:
+            result = definition_lookup_func(word)
+            return jsonify({"success": True, **result})
+        except ValueError as error:
+            return jsonify({
+                "success": False,
+                "word": word.strip().upper(),
+                "message": str(error),
+            }), 400
+        except DefinitionLookupError as error:
+            return jsonify({
+                "success": False,
+                "word": word.strip().upper(),
+                "message": str(error),
+            }), 502
 
     @app.post("/api/new")
     def api_new():

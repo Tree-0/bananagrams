@@ -342,6 +342,67 @@ input {
     color: var(--bad);
 }
 
+.word-button {
+    display: block;
+    width: 100%;
+    min-height: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    text-align: left;
+}
+
+.word-button:hover {
+    background: transparent;
+    color: var(--accent-strong);
+}
+
+.word-definitions {
+    display: grid;
+    gap: 8px;
+    margin-top: 8px;
+    border-top: 1px solid #c6dccd;
+    padding-top: 8px;
+    color: var(--ink);
+    font-size: 0.84rem;
+    line-height: 1.35;
+}
+
+.word-definitions.muted {
+    color: var(--muted);
+}
+
+.word-definitions.error {
+    color: var(--bad);
+}
+
+.definition-meaning {
+    display: grid;
+    gap: 5px;
+}
+
+.part-of-speech {
+    color: var(--good);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.definition-row {
+    display: grid;
+    gap: 3px;
+}
+
+.definition-row p {
+    margin: 0;
+}
+
+.definition-example {
+    color: var(--muted);
+    font-style: italic;
+}
+
 .message-list li {
     color: var(--muted);
 }
