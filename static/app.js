@@ -332,6 +332,31 @@ async function dumpTile(char) {
     await requestApi("/api/dump", { char });
 }
 
+function selectedTile() {
+    return ui.state?.placed_tiles.find((tile) =>
+        tile.x === ui.selected.x && tile.y === ui.selected.y
+    );
+}
+
+async function dumpSelectedTile() {
+    if (!ui.state || ui.state.is_game_over || ui.state.bag_count <= 0) {
+        return;
+    }
+
+    const tile = selectedTile();
+    if (!tile) {
+        return;
+    }
+
+    const char = tile.char;
+    const point = { ...ui.selected };
+
+    const removed = await requestApi("/api/remove", point);
+    if (removed.success) {
+        await dumpTile(char);
+    }
+}
+
 elements.customForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     ui.selected = { x: 0, y: 0 };
@@ -380,9 +405,14 @@ document.addEventListener("keydown", async (event) => {
         return;
     }
 
-    if (event.code === "Space") {
+    // Press space to peel a tile, when possible
+    if (event.code === "Space" && !event.shiftKey) {
         event.preventDefault();
-        if (ui.state && ui.state.can_peel) {
+        // Press shift + space to dump the tile on the selected cell
+        if (event.shiftKey) {
+            await dumpSelectedTile();
+        }
+        else if (ui.state && ui.state.can_peel) {
             await peel();
         }
         return;
