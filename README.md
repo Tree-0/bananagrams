@@ -9,12 +9,12 @@ a Flask API, and a vanilla JavaScript grid UI.
 python3.14 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-python main.py
+python backend/main.py
 ```
 
 Open `http://127.0.0.1:5050`.
 
-To stop the Flask server, return to the terminal running `python main.py` and
+To stop the Flask server, return to the terminal running `python backend/main.py` and
 press `Ctrl+C`.
 
 If the server was started from another terminal or helper session, stop the
@@ -55,26 +55,28 @@ or full official table rules.
 
 ## Files
 
-- `main.py`: Starts the Flask development server.
-- `app.py`: Defines the Flask app, page route, and JSON API endpoints.
-- `game.py`: Owns the active game session, remaining bag, peel/dump logic, and
+- `backend/main.py`: Starts the Flask development server.
+- `backend/app.py`: Defines the Flask app, page route, and JSON API endpoints.
+- `backend/game.py`: Owns the active game session, remaining bag, peel/dump logic, and
   win condition.
-- `board.py`: Core board model for tile placement, movement, word discovery,
+- `backend/board.py`: Core board model for tile placement, movement, word discovery,
   validation, and UI state serialization.
-- `tile_bag.py`: Standard Bananagrams tile distribution, random rack drawing,
+- `backend/tile_bag.py`: Standard Bananagrams tile distribution, random rack drawing,
   and custom rack parsing.
-- `templates/index.html`: Main browser UI structure.
-- `static/app.js`: Frontend state rendering, keyboard controls, drag/drop, and
+- `backend/word_definitions.py`: Dictionary API lookup and response parsing.
+- `frontend/templates/index.html`: Main browser UI structure.
+- `frontend/static/app.js`: Frontend state rendering, keyboard controls, drag/drop, and
   API calls.
-- `static/styles.css`: App layout, board grid, tile, rack, and status styling.
-- `dictionary/trie.py`: Trie data structure used for word lookup.
-- `dictionary/trie_cache.py`: Builds, saves, and loads the serialized trie.
-- `dictionary/dictionary.txt`: Source word list.
-- `dictionary/trie.pickle`: Cached serialized trie built from the dictionary.
-- `dictionary/__init__.py`: Dictionary package exports.
-- `test_board.py`: Unit tests for the board model.
-- `test_game.py`: Unit tests for peel, dump, bag state, and game completion.
-- `test_tile_bag.py`: Unit tests for tile distribution and rack creation.
-- `test_app.py`: Flask API tests.
+- `frontend/static/styles.css`: App layout, board grid, tile, rack, and status styling.
+- `backend/dictionary/trie.py`: Trie data structure used for word lookup.
+- `backend/dictionary/trie_cache.py`: Builds, saves, and loads the serialized trie.
+- `backend/dictionary/dictionary.txt`: Source word list.
+- `backend/dictionary/trie.pickle`: Cached serialized trie built from the dictionary.
+- `backend/dictionary/__init__.py`: Dictionary package exports.
+- `backend/test/test_board.py`: Unit tests for the board model.
+- `backend/test/test_game.py`: Unit tests for peel, dump, bag state, and game completion.
+- `backend/test/test_tile_bag.py`: Unit tests for tile distribution and rack creation.
+- `backend/test/test_app.py`: Flask API tests.
+- `backend/test/test_word_definitions.py`: Unit tests for definition lookup parsing.
 - `requirements.txt`: Python dependencies.
 - `RULES.txt`: Scratch notes for future rules work.
